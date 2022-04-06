@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://mysql-standalone:3306/full-stack-ecommerce
+    username: ecommerceapp
+    password: ecommerceapp
+    hikari:
+      initialization-fail-timeout: 0
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      ddl-auto: update
