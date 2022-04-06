@@ -1,0 +1,52 @@
+# Docker Compose file Reference (https://docs.docker.com/compose/compose-file/)
+version: '3.7'
+
+# Define services
+services:
+
+  # Service MySQL 
+  mysql-standalone: 
+    image: mysql:latest
+    container_name: mysql-standalone
+    ports: 
+      - "3306:3306"
+    restart: always
+    environment: 
+      - MYSQL_DATABASE=full-stack-ecommerce
+      - MYSQL_USER=ecommerceapp
+      - MYSQL_PASSWORD=ecommerceapp
+      - MYSQL_ROOT_PASSWORD=root
+      
+  # Service Backend  
+  springboot-container: 
+    image: springboot-docker
+    container_name: springboot-docker-container
+    ports: 
+      - "8080:8080" # port forwarding
+    build: 
+      context: 02-backend/spring-boot-ecommerce/
+      dockerfile: Dockerfile
+    restart: always
+    depends_on: 
+      - mysql-standalone  
+      
+  # Frontend Service
+  app-client: # name of the first service
+    container_name: angular-container
+    build: 03-frontend/angular-ecommerce/ # specify the firectory of the DockerFile
+    volumes: # volume binding 
+      - './:/usr/src/app'
+    ports:
+      - "4200:80" # port forwarding 
+    command: >
+      bash -c "npm start"
+      
+      
+  #docker-nginx: 
+  #  container_name: docker-nginx
+  # build: 03-frontend/angular-ecommerce/
+  # ports: 
+  #   - "80:80"
+  # command: ["nginx", "-g", "daemon off;"]
+  # links: 
+  #   - app-client
