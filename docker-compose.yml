@@ -6,42 +6,67 @@ services:
 
   # Service MySQL 
   mysql-standalone: 
-    image: mysql:latest
+    image: mysql:5.7
     container_name: mysql-standalone
     ports: 
-      - "3306:3306"
-    restart: always
+      - $MYSQLDB_LOCAL_PORT:$MYSQLDB_DOCKER_PORT
+    env_file: ./.env
     environment: 
-      - MYSQL_DATABASE=full-stack-ecommerce
-      - MYSQL_USER=ecommerceapp
-      - MYSQL_PASSWORD=ecommerceapp
-      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_ROOT_USER=$MYSQLDB_ROOT_USER
+      - MYSQL_ROOT_PASSWORD=$MYSQLDB_ROOT_PASSWORD
+      - MYSQL_DATABASE=$MYSQLDB_DATABASE
+      - MYSQL_USER=$MYSQLDB_USER
+      - MYSQL_PASSWORD=$MYSQLDB_USER_PASSWORD
+    networks: 
+      - backend
       
   # Service Backend  
   springboot-container: 
     image: springboot-docker
     container_name: springboot-docker-container
     ports: 
-      - "8080:8080" # port forwarding
+      - $SPRING_LOCAL_PORT:$SPRING_DOCKER_PORT # port forwarding
     build: 
       context: 02-backend/spring-boot-ecommerce/
       dockerfile: Dockerfile
-    restart: always
     depends_on: 
       - mysql-standalone  
+    environment: # Pass environment variables to the service
+      SPRING_APPLICATION_JSON: '{
+        "spring.datasource.url"  : "jdbc:mysql://mysql-standalone:$MYSQLDB_DOCKER_PORT/$MYSQLDB_DATABASE",
+        "spring.datasource.username" : "$MYSQLDB_USER",
+        "spring.datasource.password" : "$MYSQLDB_USER_PASSWORD",
+        "spring.jpa.properties.hibernate.dialect" : "org.hibernate.dialect.MySQL5InnoDBDialect",
+        "spring.jpa.hibernate.ddl-auto" : "update"
+      }'    
+    networks: # Networks to join (Services on the same network can communicate with each other using their name)
+      - backend
+      - frontend
       
   # Frontend Service
   app-client: # name of the first service
     container_name: angular-container
-    build: 03-frontend/angular-ecommerce/ # specify the firectory of the DockerFile
+    build: 
+       context: 03-frontend/angular-ecommerce/ # specify the firectory of the DockerFile
+       dockerfile: Dockerfile
+       args:
+        API_BASE_URL: http://127.0.0.1:8080/
     volumes: # volume binding 
       - './:/usr/src/app'
     ports:
       - "4200:80" # port forwarding 
+    depends_on:
+      - springboot-container
+    networks:
+      - frontend 
     command: >
       bash -c "npm start"
-      
-      
+  
+networks:
+  # The presence of these objects is sufficient to define them
+  frontend:
+  backend: 
+    
   #docker-nginx: 
   #  container_name: docker-nginx
   # build: 03-frontend/angular-ecommerce/
